@@ -1,3 +1,7 @@
+if(process.env.NODE_ENV != "production"){
+require(`dotenv`).config();
+}
+
 const express = require("express");
 const app = express();
 const mongoose = require("mongoose");
@@ -7,6 +11,8 @@ const ejsMate = require("ejs-mate");// use create  multiple template
 const expressLayouts = require("express-ejs-layouts");
 const expressError =  require("./utils/expressError");
 const session = require("express-session");
+const MongoStore = require('connect-mongo');
+
 const flash = require("connect-flash");
 
 
@@ -29,9 +35,9 @@ app.set("view engine","ejs");
 app.use(express.urlencoded({extended : true}));
 app.engine('ejs', ejsMate);
 
-
+const dbUrl = process.env.ATLASDB_URL;
 async function main() {
-  await mongoose.connect('mongodb://127.0.0.1:27017/wanderlust');
+  await mongoose.connect(dbUrl);
 };
 main().
  then(()=> {console.log("connection successful")})
@@ -40,8 +46,24 @@ main().
 // flash- one time display in screen after new user.
 // cookies session ko track karti hai
 // cookies me date ko save karti hai ki login kitne din tak rahega
- const sessionOption ={
-  secret: "msupersecret",
+
+// for connec-session
+const store = MongoStore.create({
+  mongoUrl: dbUrl,
+  crypto:{
+    secret: process.env.SECRET,
+  },
+  touchAfter: 24*3600,   // after login
+ });
+
+ store.on("error", () => {
+  console.log("ERROR in MONGO SESSION STORE", err);
+ });
+ 
+
+const sessionOption = {
+  store,
+  secret: process.env.SECRET,
   resave: false,
   saveUninitialized: true,
   cookie: {
@@ -50,9 +72,9 @@ main().
     httpOnly: true,
   },
  };
- app.get("/",(req,res)=>{
-    res.send("root is working");
-  });
+//  app.get("/",(req,res)=>{
+//     res.send("root is working");
+//   });
 
  app.use(session(sessionOption));
  app.use(flash());

@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 const Review = require("./review.js");
+const { required } = require("joi");
 
 const listingSchema = new Schema({
     title:{
@@ -9,10 +10,8 @@ const listingSchema = new Schema({
     },
     description: String,
     image:{
-        type: String,
-         default:"https://unsplash.com/photos/a-delicate-pink-lotus-flower-blooms-amidst-green-leaves-bX_sZ5_6ySE",
-        set: (v)=> v==="" ? "https://unsplash.com/photos/a-delicate-pink-lotus-flower-blooms-amidst-green-leaves-bX_sZ5_6ySE"
-         : v,
+      url: String,
+      filename: String,
     },
     price: Number,
     location:String,
@@ -28,12 +27,30 @@ const listingSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: "User",
     },
+
+ geometry: {
+    type: {
+      type: String, 
+      enum: ['Point'], 
+      required: true
+    },
+    coordinates: {
+      type: [Number],
+      required: true
+    }
+  },
+  // category:{  // for future
+  //     type: String,
+  //     enum: ["mountains", "arctic"],  
+  //   },
+
 });
 
  listingSchema.post("findOneAndDelete", async(listing)=>{
     if(listing){
     await Review.deleteMany({_id : {$in: listing.review}});
     }
+    
 });
 
  const Listing = mongoose.model("Listing", listingSchema);
